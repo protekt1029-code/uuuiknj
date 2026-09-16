@@ -20,7 +20,23 @@ jobs:
           INNER=$(find _tmp -name "gradlew" | head -1 | xargs dirname)
           cp -r "$INNER"/. .
           rm -rf _tmp
-          ls -la
+
+      - name: Fix gradlew
+        run: |
+          cat > gradlew << 'EOF'
+          #!/bin/sh
+          APP_HOME="`pwd -P`"
+          CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
+          JAVACMD="java"
+          if [ -n "$JAVA_HOME" ] ; then
+              JAVACMD="$JAVA_HOME/bin/java"
+          fi
+          exec "$JAVACMD" $JAVA_OPTS \
+            -classpath "$CLASSPATH" \
+            org.gradle.wrapper.GradleWrapperMain \
+            "$@"
+          EOF
+          chmod +x gradlew
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -34,9 +50,6 @@ jobs:
           mkdir -p gradle/wrapper
           curl -sL "https://github.com/gradle/gradle/raw/v8.7.0/gradle/wrapper/gradle-wrapper.jar" \
             -o gradle/wrapper/gradle-wrapper.jar
-
-      - name: Grant execute permission
-        run: chmod +x gradlew
 
       - name: Build APK
         run: ./gradlew assembleRelease --no-daemon
